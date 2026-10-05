@@ -24,13 +24,13 @@ public class UserRepository {
 
     // 2. Fetching multiple rows
     public List<Map<String, Object>> getAllUsers() {
-        String sql = "SELECT id, user_name, email FROM users";
+        String sql = "SELECT id, username, email FROM users";
         return jdbcTemplate.queryForList(sql);
     }
 
     // 3. Executing a safe, parameterized update/insert
     public void createNewUser(String username, String email) {
-        String sql = "INSERT INTO users (user_name, email) VALUES (?, ?)";
+        String sql = "INSERT INTO users (username, email) VALUES (?, ?)";
         jdbcTemplate.update(sql, username, email);
     }
 }

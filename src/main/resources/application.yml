@@ -2,7 +2,7 @@ spring:
   application:
     name: seatbooking
   datasource:
-    url: jdbc:postgresql://localhost:5432/testdb1
+    url: jdbc:postgresql://localhost:5432/testdb2
     username: postgres
     password: Password123@
     driver-class-name: org.postgresql.Driver
@@ -22,10 +22,6 @@ spring:
 logging:
   level:
     org.springframework.jdbc.core.JdbcTemplate: DEBUG
-
-server:
-  servlet:
-    context-path: /booking
 
 management:
   endpoints:
