@@ -2,9 +2,9 @@ spring:
   application:
     name: seatbooking
   datasource:
-    url: jdbc:postgresql://localhost:5432/testdb2
-    username: postgres
-    password: Password123@
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/seatbooking}
+    username: ${DATABASE_USER:seatbooking}
+    password: ${DATABASE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
     # Connection Pool settings (HikariCP defaults)
@@ -19,9 +19,12 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.xml
 
 # Enable this if you want to see your raw SQL queries printed in the console logs
-logging:
-  level:
-    org.springframework.jdbc.core.JdbcTemplate: DEBUG
+booking:
+  jwt-secret: ${JWT_SECRET:}
+  admin-username: ${ADMIN_USERNAME:}
+  admin-password: ${ADMIN_PASSWORD:}
+  user-username: ${USER_USERNAME:}
+  user-password: ${USER_PASSWORD:}
 
 management:
   endpoints:

@@ -31,5 +31,3 @@ build/
 data.txt
 ### VS Code ###
 .vscode/
-.mvn/
-

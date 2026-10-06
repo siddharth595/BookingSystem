@@ -1,4 +1,4 @@
-# Coding Standards — Seat Reservation Service
+# Coding Standards — Seat Booking Service
 
 ## 1. Principles
 
@@ -52,12 +52,12 @@ Controllers must not:
 
 Use-case services own business orchestration.
 
-Reservation service responsibilities include:
+Booking service responsibilities include:
 
 - show/seat validation
 - idempotency
 - per-user limit
-- transactional reservation
+- transactional booking
 - amount calculation
 - cancellation
 
@@ -65,7 +65,7 @@ The transaction boundary should be clear, e.g.:
 
 ```java
 @Transactional
-public ReservationResponse reserve(...) {
+public BookingResponse reserve(...) {
     // atomic state transition
 }
 ```
@@ -96,7 +96,7 @@ mutate
 commit
 ```
 
-All reservation writers must follow the same discipline.
+All booking writers must follow the same discipline.
 
 ## 7. Deadlock Avoidance
 
@@ -123,7 +123,7 @@ Keep the default limit for max number of seats to 4. If more than 4 seat booking
 
 ## 9. Idempotency
 
-Canonicalize the reservation intent before hashing.
+Canonicalize the booking intent before hashing.
 
 At minimum, the fingerprint should represent:
 
@@ -148,12 +148,12 @@ Do not silently overwrite an existing key.
 
 ## 10. Transactions
 
-A successful reservation must atomically cover all relevant state transitions:
+A successful booking must atomically cover all relevant state transitions:
 
 - idempotency record/result
 - seat ownership/state
-- reservation
-- reservation-seat rows
+- booking
+- booking-seat rows
 - user/show active allocation count
 
 Unexpected database errors must roll back.
@@ -191,6 +191,8 @@ Every changeset ID must be unique.
 Validate migrations from a clean checkout.
 
 ## 13. SQL
+
+Execute all application SQL through repository classes. Services coordinate business decisions and transactions; controllers and metrics call repositories when they need database reads.
 
 Use prepared/parameterized queries.
 
@@ -250,11 +252,11 @@ Use structured logs where possible.
 
 Every HTTP request gets a correlation/request ID.
 
-Reservation logs should allow investigation of:
+Booking logs should allow investigation of:
 
 - show
 - authenticated user
-- reservation
+- booking
 - outcome
 - reason
 - latency
@@ -273,7 +275,7 @@ reservations_declined_total{reason="idempotent_replay"}
 seats_available
 ```
 
-Use bounded labels only. Never use user/seat/reservation/request IDs as metric labels.
+Use bounded labels only. Never use user/seat/booking/request IDs as metric labels.
 
 ## 18. Tests
 
@@ -310,7 +312,7 @@ Before considering a change complete, ask:
 - What serializes the ownership decision?
 - Can two transactions both win?
 - Can same-user requests both pass the limit check?
-- Can same-key retries create two reservations?
+- Can same-key retries create two bookings?
 - Can same-key different-body requests change state?
 - Can cancellation release a seat after reassignment?
 - Can DB failure become a false success?
@@ -343,3 +345,4 @@ Before considering a change complete, ask:
 - Code should be extensible and keeping the future addition of a redis lock based system.
 - Use design patterns wherever required and necessary.
 - Commenting should be not extensively and should be low.
+- Keep the code compact and use modern standards like java streams etc. Actions should be performed with the goal in mind for each step.

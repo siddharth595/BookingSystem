@@ -2,13 +2,13 @@
 
 ## 1. Mission
 
-You are implementing an event seat reservation service that will be tested with high-concurrency bursts against a live deployment.
+You are implementing an event seat booking service that will be tested with high-concurrency bursts against a live deployment.
 
 The most important properties are:
 
 1. No seat double-sell.
 2. No per-user-limit oversubscription.
-3. No duplicate reservation caused by retries.
+3. No duplicate booking caused by retries.
 4. No unsafe cancellation/release.
 5. No 5xx for expected contention.
 6. Reconciliation always holds.
@@ -79,7 +79,7 @@ Use the mechanism in `Architecture.md`.
 
 ## 6. Mandatory Rule — Lock Ordering
 
-For multi-seat reservations:
+For multi-seat bookings:
 
 ```text
 sort seat IDs
@@ -105,7 +105,7 @@ If a request asks for:
 
 and A13 is unavailable, do not reserve A12.
 
-The whole operation must return 409 and leave no partial reservation state.
+The whole operation must return 409 and leave no partial booking state.
 
 ## 8. Mandatory Rule — User Limit
 
@@ -136,7 +136,7 @@ Store a deterministic request fingerprint.
 Same key + same fingerprint:
 
 ```text
-return original reservation/result
+return original booking/result
 ```
 
 Same key + different fingerprint:
@@ -167,7 +167,7 @@ Do not add an impersonation fallback for convenience.
 
 Cancellation must verify ownership before releasing seats.
 
-Never blindly set a referenced seat to `available` without verifying it is still owned by the reservation being cancelled.
+Never blindly set a referenced seat to `available` without verifying it is still owned by the booking being cancelled.
 
 Use transaction/locking appropriate to the architecture.
 
@@ -206,8 +206,8 @@ A successful reserve must atomically update all required state:
 ```text
 idempotency
 seat ownership
-reservation
-reservation seats
+booking
+booking seats
 user/show active allocation
 ```
 
@@ -281,7 +281,7 @@ The script should:
 7. print reconciliation
 8. exit non-zero on invariant failure
 
-When reservation semantics change, update the burst test.
+When booking semantics change, update the burst test.
 
 ## 20. README Rules
 

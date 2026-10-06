@@ -1,4 +1,4 @@
-# PRD — Seat Reservation Service
+# PRD — Seat Booking Service
 
 ## 1. Product Overview
 
@@ -18,7 +18,7 @@ The system must guarantee:
 2. A hot-seat race has exactly one successful winner.
 3. Domain declines are returned as HTTP 409, not 5xx.
 4. A user's seat limit cannot be exceeded under concurrency.
-5. Retried requests with the same idempotency key do not create another reservation or charge.
+5. Retried requests with the same idempotency key do not create another booking or charge.
 6. The same idempotency key with a different request body is rejected with 409.
 7. Seat state remains reconcilable: `available + held + confirmed == total_seats`.
 8. Identity comes from authentication, not from client-supplied user IDs.
@@ -31,9 +31,9 @@ The system must guarantee:
 
 - Create a show and its assigned seats.
 - Reserve one or more seats.
-- Per-user reservation limit.
-- Idempotent reservation requests.
-- Explicit reservation cancellation.
+- Per-user booking limit.
+- Idempotent booking requests.
+- Explicit booking cancellation.
 - Show state and reconciliation counts.
 - Authentication/identity derived from a token.
 - Liveness endpoint.
@@ -60,7 +60,7 @@ Money must still be represented in integer minor units (`paise`); never use floa
 
 ### 4.1 Partial Multi-Seat Requests
 
-Reservation requests are **all-or-nothing**.
+Booking requests are **all-or-nothing**.
 
 If a user requests `A12` and `A13`, and either seat is unavailable, the entire request returns `409` and neither seat is reserved.
 
@@ -69,10 +69,10 @@ If a user requests `A12` and `A13`, and either seat is unavailable, the entire r
 Use **explicit cancellation** for the initial version:
 
 ```http
-POST /reservations/{reservation_id}/cancel
+POST /bookings/{booking_id}/cancel
 ```
 
-A successful reserve immediately creates a `confirmed` reservation. Cancellation marks it `cancelled` and returns its seats to `available`.
+A successful reserve immediately creates a `confirmed` booking. Cancellation marks it `cancelled` and returns its seats to `available`.
 
 The implementation must make cancellation ownership-safe and atomic.
 
@@ -90,7 +90,7 @@ The limit must be evaluated against current active ownership and remain correct 
 
 ## 5. Authentication and Identity
 
-Protected reservation/cancellation requests derive identity from the authentication token.
+Protected booking/cancellation requests derive identity from the authentication token.
 
 A request must not be able to choose its acting user by putting `user_id` in the request body.
 
@@ -139,17 +139,18 @@ Request:
 
 ```json
 {
-  "seats": ["A12"],
-  "idempotency_key": "req-abc-123"
+  "seats": ["A12"]
 }
 ```
+
+Send `Idempotency-Key: req-abc-123` as a request header.
 
 Success is HTTP `201`:
 
 ```json
 {
-  "reservation_id": "r-123",
-  "show_id": "show-1",
+  "booking_id": 123,
+  "show_id": 1,
   "user_id": "user-42",
   "seats": ["A12"],
   "amount_paise": 25000,
@@ -162,19 +163,19 @@ Required behavior:
 - A seat confirmed for one user can never be confirmed for another.
 - A hot-seat race produces one `201`; losers receive clean `409 seat_taken` responses.
 - Exceeding the per-user limit is a clean `409 per_user_limit` response.
-- Same user + same idempotency key + same request returns the original reservation.
+- Same user + same idempotency key + same request returns the original booking.
 - Same user + same idempotency key + different requested seats returns `409` with no state change.
-- Multi-seat reservations are atomic and all-or-nothing.
+- Multi-seat bookings are atomic and all-or-nothing.
 
-### FR-003 — Cancel Reservation
+### FR-003 — Cancel Booking
 
-`POST /reservations/{reservation_id}/cancel`
+`POST /bookings/{booking_id}/cancel`
 
 Only the authenticated owner may cancel.
 
-Cancellation must atomically release only seats belonging to that reservation.
+Cancellation must atomically release only seats belonging to that booking.
 
-A safe implementation must not be able to release a seat after ownership has changed to another reservation.
+A safe implementation must not be able to release a seat after ownership has changed to another booking.
 
 ### FR-004 — Show State
 
@@ -239,10 +240,11 @@ reservation_5xx_total
 ```
 
 Metrics must represent real events/state and must reconcile with API state.
+The required `reservations_*` metric names are retained as the existing monitoring contract even though the domain object is called a booking.
 
 ### FR-008 — Structured Logging
 
-Reservation requests should log structured fields including:
+Booking requests should log structured fields including:
 
 - timestamp
 - level
@@ -250,7 +252,7 @@ Reservation requests should log structured fields including:
 - operation
 - show id
 - user id when appropriate
-- reservation id when available
+- booking id when available
 - outcome
 - decline reason
 - latency when useful
@@ -264,7 +266,7 @@ Never log passwords, bearer tokens, database credentials, or secret keys.
 | Invalid request | 400 |
 | Missing/invalid authentication | 401 |
 | Authenticated but not owner/admin | 403 |
-| Show/reservation not found | 404 |
+| Show/booking not found | 404 |
 | Seat already taken | 409 |
 | Per-user limit exceeded | 409 |
 | Same idempotency key with different body | 409 |
@@ -341,7 +343,7 @@ A clean checkout must build and run. Dockerized local execution must match deplo
 - [ ] Expected contention produces 409, not 500.
 - [ ] Multi-seat requests are all-or-nothing.
 - [ ] Per-user limit holds under concurrent requests.
-- [ ] Idempotent retries create no duplicate reservation.
+- [ ] Idempotent retries create no duplicate booking.
 - [ ] Same key with different body returns 409 and changes nothing.
 - [ ] Cancellation is owner-only and concurrency-safe.
 - [ ] Reconciliation invariant holds.

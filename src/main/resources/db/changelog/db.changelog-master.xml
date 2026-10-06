@@ -8,5 +8,6 @@
 
     <!-- Include your SQL script files here -->
     <include file="db/changelog/changes/initial-tables.sql"/>
+    <include file="db/changelog/changes/booking-integrity.sql"/>
 
 </databaseChangeLog>

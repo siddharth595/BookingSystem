@@ -1,37 +1,28 @@
 package com.project.seatbooking.repository;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.project.seatbooking.model.UserAccount;
+import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import java.util.List;
-import java.util.Map;
 
 @Repository
 public class UserRepository {
+    private static final String FIND_USER = "SELECT id, username, password, role FROM users WHERE username = ?";
+    private static final String INSERT_IF_ABSENT =
+            "INSERT INTO users(username, email, password, role) VALUES (?, ?, ?, ?) " +
+            "ON CONFLICT (username) DO NOTHING";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbc;
 
-    @Autowired
-    public UserRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public UserRepository(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
     }
-
-    // 1. Fetching a single value
-    public int getUserCount() {
-        String sql = "SELECT COUNT(*) FROM users";
-        return jdbcTemplate.queryForObject(sql, Integer.class);
+    public Optional<UserAccount> find(String username) {
+        return jdbc.query(FIND_USER,
+                (rs, n) -> new UserAccount(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4)), username)
+                .stream().findFirst();
     }
-
-    // 2. Fetching multiple rows
-    public List<Map<String, Object>> getAllUsers() {
-        String sql = "SELECT id, username, email FROM users";
-        return jdbcTemplate.queryForList(sql);
-    }
-
-    // 3. Executing a safe, parameterized update/insert
-    public void createNewUser(String username, String email) {
-        String sql = "INSERT INTO users (username, email) VALUES (?, ?)";
-        jdbcTemplate.update(sql, username, email);
+    public void createIfMissing(String username, String hash, String role) {
+        jdbc.update(INSERT_IF_ABSENT, username, username + "@example.invalid", hash, role);
     }
 }
-

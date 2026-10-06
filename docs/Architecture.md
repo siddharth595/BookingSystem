@@ -1,4 +1,4 @@
-# Architecture — Seat Reservation Service
+# Architecture — Seat Booking Service
 
 ## 1. Design Objective
 
@@ -9,14 +9,16 @@ The database is the system of record for:
 - shows
 - seats
 - users
-- booking
-- booking_seats
+- booking and booking_seats
 - idempotency_keys
+- show_user_allocations
 
 The key architectural requirement is that **seat ownership and user-limit decisions have a clear serialization point**.
 The DDLs for these tables can be found at path `@src/main/resources/db/changelog/changes/initial-tables.sql`
 The table structure for these tables can be found in `Database-design.md` file.
-`user_id` wherever referenced should be referred to username column and the logs should also refer to it. Dont use the id field in users table for user_id as foreign key. username will be unique accross the system.
+The active booking API uses the existing `booking`, `booking_seats`, and `idempotency_keys` tables. The additive `booking-integrity.sql` migration adds seat ownership and show-user allocation state. Seed users are supplied through environment variables at startup so no reusable credentials are stored in the repository.
+The migration initializes allocation counts from confirmed bookings and only assigns `seats.booking_id` when exactly one confirmed booking claims a seat. Ambiguous legacy ownership stays unavailable and cannot be released by cancellation.
+The token subject, API `user_id`, and logs use the unique username. Existing database `user_id` columns remain numeric foreign keys to `users.id`; the service resolves the authenticated username to that ID.
 
 ## 2. High-Level Architecture
 
@@ -60,7 +62,7 @@ A single database is intentional. The challenge is transactional contention over
 
 ### BookingController
 
-- parse reservation request
+- parse booking request
 - obtain authenticated principal
 - obtain idempotency key
 - delegate to BookingService
@@ -68,20 +70,21 @@ A single database is intentional. The challenge is transactional contention over
 
 ### BookingService
 
-Owns the reservation use case:
+Owns the booking use case:
 
 - idempotency handling
 - user validation from token using spring security
 - show and seat validation
 - per-user limit
 - atomic seat acquisition
-- reservation creation
+- booking creation
 - cancellation
 
 ### Repositories/DAOs
 
-- Own persistence access and concurrency primitives.
-- Use JdbcTemplate rather than JPA for more control. SQL queries should be fine tuned for the concurrency requirements. It should handle cases where multiple users try to book same seat at one time.
+- `UserRepository`, `ShowRepository`, `SeatRepository`, `BookingRepository`, `BookingSeatRepository`, `IdempotencyKeyRepository`, and `ShowUserAllocationRepository` own queries for their respective tables.
+- `DatabaseHealthRepository` performs the readiness connectivity query; `SeatRepository` supplies the available-seat metric.
+- Services own the transaction boundaries and call explicit repository lock methods in the documented order. Repository calls share the service transaction.
 
 ### Observability
 
@@ -92,60 +95,37 @@ Provides:
 - correlation IDs
 - health/readiness
 
-## 4. Recommended Package Structure
-
-For Java/Spring Boot:
+## 4. Package Structure
 
 ```text
-com.example.seatbooking
+com.project.seatbooking
 |
 +-- controller
-|   +-- ShowController
-|   +-- BookingController
-|   +-- HealthController
+|   +-- AuthController, ShowController, BookingController, HealthController
+|   +-- ApiErrors, BookingMetrics
 |
-+-- service
-|   +-- ShowService
-|   +-- BookingService
-|
-+-- repository
-|   +-- ShowRepository
-|   +-- SeatRepository
-|   +-- ReservationRepository
-|   +-- ReservationSeatRepository
-|   +-- IdempotencyKeyRepository
-|   +-- ShowUserAllocationRepository
-|
-+-- Beans
-|   +-- Show
-|   +-- Seat
-|   +-- Booking
-|   +-- BookingSeat
-|   +-- IdempotencyKey
-|   +-- ShowUserAllocation
-|
-+-- dto
-|   +-- CreateShowRequest
-|   +-- ReserveRequest
-|   +-- ShowResponse
-|   +-- ReservationResponse
-|   +-- ErrorResponse
-|   +-- 
-|
-+-- exception
-|   +-- SeatTakenException
-|   +-- UserLimitExceededException
-|   +-- IdempotencyConflictException
-|   +-- ResourceNotFoundException
-|
-+-- security
-|   +-- AuthenticationFilter
-|
-+-- observability
-|   +-- MetricsService
-|   +-- CorrelationIdFilter
++-- filter
+|   +-- CorrelationFilter
 |
 +-- config
+|   +-- SecurityConfig
+|
++-- service
+|   +-- ShowService, BookingService, TokenService, SeedUsers
+|
++-- repository
+|   +-- UserRepository, ShowRepository, SeatRepository
+|   +-- BookingRepository, BookingSeatRepository, IdempotencyKeyRepository
+|   +-- ShowUserAllocationRepository, DatabaseHealthRepository
+|
++-- model
+|   +-- UserAccount, Show, Seat, Booking, BookingSeat
+|   +-- IdempotencyKey, ShowUserAllocation
+|
++-- dto
+    +-- AuthTokenRequest, AuthTokenResponse, CreateShowRequest
+    +-- ShowResponse, SeatResponse, ReserveRequest
+    +-- BookingResponse, CancelBookingResponse, ErrorResponse, HealthResponse
 ```
 
 ## 5. Data Model
@@ -171,6 +151,7 @@ seats
 show_id            PK/FK
 seat_id            PK
 status             available | held | confirmed
+booking_id         FK, current confirmed owner
 updated_at
 created_at
 ```
@@ -183,31 +164,30 @@ Primary key:
 
 This makes a seat unique within a show.
 
-### reservations
+### booking
 
 ```text
-reservations
-------------
+booking
+-------
 id                 PK
 show_id            FK
-user_id
+user_id            FK to users.id
 amount_paise
 status             confirmed | cancelled
 created_at
-updated_at
 ```
 
-### reservation_seats
+### booking_seats
 
 ```text
-reservation_seats
------------------
-reservation_id     FK
+booking_seats
+-------------
+booking_id         FK
 show_id
 seat_id
 
 PK:
-(reservation_id, seat_id)
+(booking_id, seat_id)
 
 FK:
 (show_id, seat_id) -> seats(show_id, seat_id)
@@ -221,7 +201,6 @@ idempotency_keys
 user_id
 idempotency_key
 request_hash
-reservation_id
 response_body
 created_at
 
@@ -237,9 +216,8 @@ Recommended for robust per-user concurrency:
 show_user_allocations
 ---------------------
 show_id
-user_id
+user_id            FK to users.id
 active_seat_count
-per_user_limit
 
 PK:
 (show_id, user_id)
@@ -251,7 +229,7 @@ This row provides a clear serialization point for same-user parallel booking req
 
 ### Invariant 1 — One Seat, One Active Owner
 
-For each `(show_id, seat_id)`, at most one active reservation can own the seat.
+For each `(show_id, seat_id)`, at most one active booking can own the seat.
 
 ### Invariant 2 — User Limit
 
@@ -271,28 +249,28 @@ For `(user_id, idempotency_key)` there is at most one idempotency record.
 available + held + confirmed == total_seats
 ```
 
-### Invariant 5 — Reservation/Seat Consistency
+### Invariant 5 — Booking/Seat Consistency
 
-A confirmed reservation's seats must be in the corresponding non-available state and must reference the reservation correctly.
+A confirmed booking's seats must be in the corresponding non-available state and reference that booking through `seats.booking_id`.
 
-## 7. Atomic Reservation Flow
+## 7. Atomic Booking Flow
 
 ```text
 POST /shows/{id}/reserve
           |
           v
-ReservationController
+BookingController
           |
           v
-ReservationService
+BookingService
           |
           +--> authenticate user
           |
           +--> validate request
           |
-          +--> idempotency lookup/insert
-          |
           +--> BEGIN TRANSACTION
+          |
+          +--> idempotency lookup/insert
           |
           +--> lock show-user allocation row
           |
@@ -353,7 +331,7 @@ Then:
 1. Verify all requested seats exist.
 2. Verify every requested seat is available.
 3. Verify the user's limit.
-4. Create reservation state.
+4. Create booking state.
 5. Update seats.
 6. Commit.
 
@@ -392,7 +370,7 @@ Avoid:
 ```text
 COUNT active seats
 if count < limit
-INSERT reservation
+INSERT booking
 ```
 
 without serialization.
@@ -403,7 +381,7 @@ Recommended mechanism:
 2. Read `active_seat_count`.
 3. Verify `active_seat_count + requested_count <= per_user_limit`.
 4. Lock requested seats in sorted order.
-5. Create reservation and update seat states.
+5. Create booking and update seat states.
 6. Increment the allocation count in the same transaction.
 7. Commit.
 
@@ -416,7 +394,7 @@ The logical idempotency identity is:
 ```text
 (authenticated_user_id, idempotency_key)
 ```
-Here user_id should be username as username is unique.
+The token username resolves to `users.id` before accessing the existing numeric-key table.
 The service stores a deterministic request fingerprint, for example a SHA-256 hash of a canonical representation of:
 
 ```text
@@ -425,7 +403,7 @@ show_id + sorted seat IDs
 
 ### Same Key + Same Body
 
-Return the existing reservation/result.
+Return the existing booking/result.
 
 No new seat mutation occurs.
 
@@ -437,7 +415,7 @@ Return:
 409 idempotency_conflict
 ```
 
-No reservation mutation occurs.
+No booking mutation occurs.
 
 ### Concurrent Same-Key Requests
 
@@ -454,8 +432,7 @@ Use:
 ```text
 UNIQUE(user_id, idempotency_key)
 ```
-Here user_id is username from users table
-as the database serialization point.
+Here `user_id` is the numeric ID of the authenticated username. The composite primary key is the database serialization point.
 
 One request creates the record; a competing request handles the uniqueness conflict and reads the authoritative stored result.
 
@@ -469,16 +446,16 @@ confirmed --> cancelled
 
 Within one transaction:
 
-1. Lock reservation.
+1. Lock booking.
 2. Verify authenticated owner.
-3. Lock its reservation-seat rows/seats as necessary.
-4. Verify current ownership still belongs to this reservation.
-5. Mark reservation cancelled.
+3. Lock its booking-seat rows/seats as necessary.
+4. Verify current ownership still belongs to this booking.
+5. Mark booking cancelled.
 6. Release only those seats.
 7. Decrement `active_seat_count`.
 8. Commit.
 
-Never blindly set all seats referenced by a cancelled reservation to available without verifying the ownership relationship.
+Never blindly set all seats referenced by a cancelled booking to available without verifying the ownership relationship.
 
 ## 14. Show State / Reconciliation
 
@@ -515,7 +492,9 @@ reservations_declined_total{reason="idempotent_replay"}
 seats_available
 ```
 
-Use bounded labels. Do not attach `user_id`, `reservation_id`, `request_id`, or `seat_id` as high-cardinality labels.
+The `reservations_*` metric names remain for monitoring compatibility; API and database terminology uses booking.
+
+Use bounded labels. Do not attach `user_id`, `booking_id`, `request_id`, or `seat_id` as high-cardinality labels.
 
 ### Logging
 
@@ -573,7 +552,7 @@ Never store authoritative seat ownership only in process memory.
 
 Liveness must remain useful when PostgreSQL is unavailable.
 
-Readiness must fail when PostgreSQL is unreachable because the service cannot safely make authoritative reservation decisions.
+Readiness must fail when PostgreSQL is unreachable because the service cannot safely make authoritative booking decisions.
 
 ## 18. Burst Test Design
 
@@ -591,7 +570,7 @@ A `burst.sh` client should:
 
 ## 19. Consistency vs Availability
 
-The reservation write path prefers consistency over availability.
+The booking write path prefers consistency over availability.
 
 If PostgreSQL is unavailable, do not accept a speculative booking.
 
@@ -603,7 +582,7 @@ Readiness should also become unhealthy.
 
 ### ADR-001 — Single PostgreSQL Source of Truth
 
-Use one transactional relational database for authoritative reservation state.
+Use one transactional relational database for authoritative booking state.
 
 ### ADR-002 — Row-Level Locking for Seats
 
@@ -613,9 +592,9 @@ The seat row is the serialization point for ownership decisions.
 
 Lock show-user allocation first and seats sorted by ID to reduce deadlock risk.
 
-### ADR-004 — All-or-Nothing Multi-Seat Reservations
+### ADR-004 — All-or-Nothing Multi-Seat Bookings
 
-No partial reservation state is committed when any requested seat is unavailable.
+No partial booking state is committed when any requested seat is unavailable.
 
 ### ADR-005 — Database-Backed Idempotency
 
@@ -636,7 +615,7 @@ All money values use integer minor units.
     ```json
       {
       "username": "john_doe",
-      "password": "SecurePassword123!"
+      "password": "<your password>"
       }
      ```
     - Returned when credentials are valid. Credentials are verified from users table. The response provides a signed bearer token along with expiration details.
@@ -657,20 +636,19 @@ All money values use integer minor units.
 
 3. Reserve a seat — POST /shows/{id}/reserve (authenticated user)
    - Request body sample:
-     - { "seats": ["A12"], "idempotency_key": "…" }
+     - { "seats": ["A12"] }
    - Response body sample:
      - Success 201:
-       { "reservation_id": "…", "show_id": "…", "user_id": "…", "seats": ["A12"], "amount_paise": 25000, "status": "confirmed" }
+       { "booking_id": "…", "show_id": "…", "user_id": "…", "seats": ["A12"], "amount_paise": 25000, "status": "confirmed" }
        Behaviour that must hold:
      - No double-sell: a seat confirmed (or actively held) for one user can never be confirmed for another. A race for the same seat produces exactly one winner; losers get a clean decline (409), never a 500.
    - Identity comes from the auth token, not from the request body. The sub key in the claims of the JWT will carry the username of the user.
    - Auth token will be JWT token generated using API 1 string with below json structure
-   - The request names the seat(s) wanted and carries an idempotency key (header)
-   - If a user asks for ["A12","A13"] and only one is free, define and document your behaviour (all-or-nothing vs best-effort) — and make it hold under concurrency.
+   - The request names the seat(s) wanted and carries an `Idempotency-Key` header.
+   - If a user asks for ["A12","A13"] and only one is free, the request is declined without booking either seat.
 
-4. Release  a hold
-   - This should make the seat available again and should be functional in case the seat booking is not successful at later stages like payment failure etc.
-   - This is a basic API which should also function under concurrent request which will make the seat available. This should also go into idempotency table.
+4. Cancel a booking — `POST /bookings/{booking_id}/cancel`
+   - Only the authenticated owner can cancel. Cancellation releases seats only when they are still owned by that booking. A repeated cancellation returns the cancelled state without releasing seats again. When an `Idempotency-Key` header is supplied, the cancellation result is stored in `idempotency_keys`.
 5. Show state — GET /shows/{id}
     - Returns per-seat status (available / held / confirmed) and counts. available + held + confirmed == total_seats must hold at all times — this is your reconciliation invariant.
 
