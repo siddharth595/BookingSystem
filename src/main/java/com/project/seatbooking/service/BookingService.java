@@ -1,5 +1,6 @@
 package com.project.seatbooking.service;
 
+import com.project.seatbooking.exception.NotFound;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 import com.project.seatbooking.dto.BookingResponse;
@@ -74,7 +75,7 @@ public class BookingService {
             }
         }
 
-        Show show = shows.find(showId).orElseThrow(() -> new ShowService.NotFound("Show not found"));
+        Show show = shows.find(showId).orElseThrow(() -> new NotFound("Show not found"));
         allocations.ensureExists(showId, userId);
         ShowUserAllocation allocation = allocations.lock(showId, userId);
 
@@ -115,7 +116,7 @@ public class BookingService {
                 catch (JacksonException e) { throw new IllegalStateException("Stored response invalid", e); }
             }
         }
-        Booking booking = bookings.lock(id).orElseThrow(() -> new ShowService.NotFound("Booking not found"));
+        Booking booking = bookings.lock(id).orElseThrow(() -> new NotFound("Booking not found"));
         if (userId != booking.getUserId()) throw new Forbidden();
         if ("cancelled".equals(booking.getStatus())) return finishCancellation(id, userId, key, false);
         allocations.ensureExists(booking.getShowId(), userId);

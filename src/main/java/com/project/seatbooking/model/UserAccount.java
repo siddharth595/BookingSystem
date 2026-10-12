@@ -9,4 +9,14 @@ public class UserAccount {
     private final String username;
     private final String passwordHash;
     private final String role;
+
+    @Override
+    public String toString() {
+        return "UserAccount{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", passwordHash='" + passwordHash + '\'' +
+                ", role='" + role + '\'' +
+                '}';
+    }
 }

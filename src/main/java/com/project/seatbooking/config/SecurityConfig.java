@@ -35,9 +35,10 @@ public class SecurityConfig {
     @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     @Bean UserDetailsService userDetailsService(UserRepository users) {
+
         return username -> users.find(username)
                 .map(user -> org.springframework.security.core.userdetails.User.withUsername(user.getUsername())
-                        .password(user.getPasswordHash()).authorities(user.getRole()).build())
+                        .password(user.getPasswordHash()).authorities("ROLE_" + user.getRole()).build())
                 .orElseThrow(() -> new UsernameNotFoundException(username));
     }
 
@@ -45,7 +46,7 @@ public class SecurityConfig {
         return http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/health/**", "/metrics", "/auth/token").permitAll()
+                        .requestMatchers("/health/**", "/metrics", "/auth/token", "/status").permitAll()
                         .requestMatchers(HttpMethod.POST, "/shows").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/shows/*").permitAll()
                         .anyRequest().authenticated())
@@ -68,7 +69,7 @@ public class SecurityConfig {
                 try {
                     var user = tokens.authenticate(header.substring(7));
                     SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                            user.getUsername(), null, List.of(new SimpleGrantedAuthority(user.getRole()))));
+                            user.getUsername(), null, List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))));
                 } catch (DataAccessException ex) { throw ex; }
                 catch (Exception ex) { response.sendError(HttpStatus.UNAUTHORIZED.value()); return; }
             }

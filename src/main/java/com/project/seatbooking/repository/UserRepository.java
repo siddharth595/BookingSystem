@@ -18,9 +18,12 @@ public class UserRepository {
         this.jdbc = jdbc;
     }
     public Optional<UserAccount> find(String username) {
-        return jdbc.query(FIND_USER,
+        System.out.println("Finding user: "+username);
+        Optional<UserAccount> user =  jdbc.query(FIND_USER,
                 (rs, n) -> new UserAccount(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4)), username)
                 .stream().findFirst();
+        System.out.println("User found: "+user.orElse(null));
+        return user;
     }
     public void createIfMissing(String username, String hash, String role) {
         jdbc.update(INSERT_IF_ABSENT, username, username + "@example.invalid", hash, role);

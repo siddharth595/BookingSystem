@@ -30,7 +30,9 @@ public class TokenService {
     }
 
     public String login(String username, String password) {
+        System.out.println(username+" "+password);
         var user = users.find(username).orElseThrow(AuthFailed::new);
+        System.out.println("user: "+user.toString());
         if (!encoder.matches(password, user.getPasswordHash()))
             throw new AuthFailed();
         try {

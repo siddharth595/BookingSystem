@@ -1,5 +1,6 @@
 package com.project.seatbooking.controller;
 
+import com.project.seatbooking.exception.NotFound;
 import com.project.seatbooking.service.BookingService;
 import com.project.seatbooking.service.ShowService;
 import com.project.seatbooking.service.TokenService;
@@ -30,7 +31,7 @@ public class ApiErrors {
                 ex.reason());
         return error(HttpStatus.CONFLICT, ex.reason(), ex.getMessage(), request);
     }
-    @ExceptionHandler(ShowService.NotFound.class)
+    @ExceptionHandler(NotFound.class)
     ResponseEntity<ErrorResponse> missing(Exception ex, HttpServletRequest request) {
         return error(HttpStatus.NOT_FOUND, "not_found", ex.getMessage(), request);
     }

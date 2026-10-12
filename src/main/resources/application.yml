@@ -2,9 +2,9 @@ spring:
   application:
     name: seatbooking
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/seatbooking}
-    username: ${DATABASE_USER:seatbooking}
-    password: ${DATABASE_PASSWORD:}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/testdb2}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:Password123@}
     driver-class-name: org.postgresql.Driver
 
     # Connection Pool settings (HikariCP defaults)
@@ -20,7 +20,7 @@ spring:
 
 # Enable this if you want to see your raw SQL queries printed in the console logs
 booking:
-  jwt-secret: ${JWT_SECRET:}
+  jwt-secret: ${JWT_SECRET:i1WwBejjOmnQRmeElh13GQFsv3YgPQ2MJpA/kBPAkzQ=}
   admin-username: ${ADMIN_USERNAME:}
   admin-password: ${ADMIN_PASSWORD:}
   user-username: ${USER_USERNAME:}

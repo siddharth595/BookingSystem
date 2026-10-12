@@ -2,21 +2,24 @@ package com.project.seatbooking.service;
 
 import com.project.seatbooking.dto.SeatResponse;
 import com.project.seatbooking.dto.ShowResponse;
+import com.project.seatbooking.exception.NotFound;
 import com.project.seatbooking.model.Seat;
 import com.project.seatbooking.model.Show;
 import com.project.seatbooking.repository.SeatRepository;
 import com.project.seatbooking.repository.ShowRepository;
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ShowService {
-    private final ShowRepository shows;
+    private final ShowRepository showRepository;
     private final SeatRepository seatRepository;
     public ShowService(ShowRepository shows, SeatRepository seatRepository) {
-        this.shows = shows; this.seatRepository = seatRepository;
+        this.showRepository = shows; this.seatRepository = seatRepository;
     }
 
     @Transactional
@@ -25,17 +28,21 @@ public class ShowService {
                 seats.size() != seats.stream().distinct().count() || price == null || price < 0 || price > Integer.MAX_VALUE ||
                 limit != null && limit <= 0)
             throw new IllegalArgumentException("Invalid show details");
+        Optional<Show> presentShow = showRepository.findByName(name);
+        if(presentShow.isPresent()) {
+            return get(presentShow.get().getId());
+        }
         if (seats.stream().anyMatch(s -> s == null || !s.matches("[A-Za-z0-9_-]{1,32}")))
             throw new IllegalArgumentException("Invalid seat ID");
         int perUserLimit = limit == null ? 4 : limit;
-        long id = shows.create(name, price, seats.size(), perUserLimit);
+        long id = showRepository.create(name, price, seats.size(), perUserLimit);
         for (String seat : seats) seatRepository.create(id, seat);
         return get(id);
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public ShowResponse get(long id) {
-        Show show = shows.find(id).orElseThrow(() -> new NotFound("Show not found"));
+        Show show = showRepository.find(id).orElseThrow(() -> new NotFound("Show not found"));
         List<Seat> rows = seatRepository.findByShow(id);
         long available = rows.stream().filter(r -> "available".equals(r.getStatus())).count();
         long held = rows.stream().filter(r -> "held".equals(r.getStatus())).count();
@@ -47,9 +54,5 @@ public class ShowService {
                 rows.stream().map(r -> new SeatResponse(r.getSeatId(), r.getStatus())).toList());
     }
 
-    public static class NotFound extends RuntimeException {
-        public NotFound(String message) {
-            super(message);
-        }
-    }
+
 }

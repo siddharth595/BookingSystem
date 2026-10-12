@@ -11,6 +11,9 @@ public class ShowRepository {
             "VALUES (?, ?, ?, ?) RETURNING id";
     private static final String FIND_SHOW =
             "SELECT id, name, price_paise, total_seats, per_user_limit FROM shows WHERE id = ?";
+    private static final String FIND_SHOW_BY_NAME =
+            "SELECT id, name, price_paise, total_seats, per_user_limit FROM shows WHERE name = ?";
+
 
     private final JdbcTemplate jdbc;
 
@@ -23,6 +26,11 @@ public class ShowRepository {
     public Optional<Show> find(long id) {
         return jdbc.query(FIND_SHOW,
                 (rs, n) -> new Show(rs.getLong(1), rs.getString(2), rs.getLong(3), rs.getInt(4), rs.getInt(5)), id)
+                .stream().findFirst();
+    }
+    public Optional<Show> findByName(String name) {
+        return jdbc.query(FIND_SHOW_BY_NAME,
+                        (rs, n) -> new Show(rs.getLong(1), rs.getString(2), rs.getLong(3), rs.getInt(4), rs.getInt(5)), name)
                 .stream().findFirst();
     }
 }

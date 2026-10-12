@@ -2,8 +2,8 @@
 set -euo pipefail
 
 BASE_URL="${1:?Usage: ./burst.sh BASE_URL}"
-: "${ADMIN_USERNAME:=admin}" "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}" "${USER_USERNAME:=demo_user}" "${USER_PASSWORD:?Set USER_PASSWORD}"
-HOT_REQUESTS="${HOT_REQUESTS:-100}"
+: "${ADMIN_USERNAME:=siddnaya}" "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}" "${USER_USERNAME:=siddnaya1}" "${USER_PASSWORD:?Set USER_PASSWORD}"
+HOT_REQUESTS="${HOT_REQUESTS:-1000}"
 PARALLEL="${PARALLEL:-32}"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
