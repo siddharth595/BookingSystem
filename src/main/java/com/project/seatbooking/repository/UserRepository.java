@@ -4,6 +4,8 @@ import com.project.seatbooking.model.UserAccount;
 
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -19,17 +21,17 @@ public class UserRepository {
 
     private static final String TRUNCATE_USERS = "TRUNCATE TABLE users CASCADE";
     private final JdbcTemplate jdbc;
-
+    private static final Logger logger = LogManager.getLogger(UserRepository.class);
     public UserRepository(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
     public Optional<UserAccount> find(String username) {
-        System.out.println("Finding user: " + username);
+        logger.info("Finding user: {}", username);
         Optional<UserAccount> user = jdbc.query(FIND_USER,
                         (rs, n) -> new UserAccount(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4)), username)
                 .stream().findFirst();
-        System.out.println("User found: " + user.orElse(null));
+        //System.out.println("User found: " + user.orElse(null));
         return user;
     }
 
