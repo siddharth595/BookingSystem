@@ -25,6 +25,10 @@ booking:
   admin-password: ${ADMIN_PASSWORD:}
   user-username: ${USER_USERNAME:}
   user-password: ${USER_PASSWORD:}
+  user2-username: ${USER2_USERNAME:}
+  user2-password: ${USER2_PASSWORD:}
+  user3-username: ${USER3_USERNAME:}
+  user3-password: ${USER3_PASSWORD:}
 
 management:
   endpoints:

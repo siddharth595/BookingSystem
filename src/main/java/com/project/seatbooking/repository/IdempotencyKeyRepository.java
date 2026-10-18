@@ -8,15 +8,18 @@ import org.springframework.stereotype.Repository;
 public class IdempotencyKeyRepository {
     private static final String INSERT_IF_ABSENT =
             "INSERT INTO idempotency_keys(user_id, idempotency_key, request_hash, response_body) " +
-            "VALUES (?, ?, ?, '') ON CONFLICT DO NOTHING";
+                    "VALUES (?, ?, ?, '') ON CONFLICT DO NOTHING";
     private static final String LOCK_KEY = "SELECT user_id, idempotency_key, request_hash, response_body " +
             "FROM idempotency_keys WHERE user_id = ? AND idempotency_key = ? FOR UPDATE";
     private static final String SAVE_RESPONSE = "UPDATE idempotency_keys SET response_body = ? " +
             "WHERE user_id = ? AND idempotency_key = ?";
+    private static final String TRUNCATE_IDEMPOTENCY_KEY_TABLE = "TRUNCATE idempotency_keys CASCADE";
 
     private final JdbcTemplate jdbc;
 
-    public IdempotencyKeyRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public IdempotencyKeyRepository(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     public boolean insertIfAbsent(long userId, String key, String requestHash) {
         return jdbc.update(INSERT_IF_ABSENT, userId, key, requestHash) == 1;
@@ -30,5 +33,9 @@ public class IdempotencyKeyRepository {
 
     public void saveResponse(long userId, String key, String responseBody) {
         jdbc.update(SAVE_RESPONSE, responseBody, userId, key);
+    }
+
+    public void truncateIdempotencyKeyTable() {
+        jdbc.execute(TRUNCATE_IDEMPOTENCY_KEY_TABLE);
     }
 }

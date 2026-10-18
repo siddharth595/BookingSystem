@@ -4,7 +4,9 @@ import com.project.seatbooking.service.BookingService;
 import com.project.seatbooking.dto.BookingResponse;
 import com.project.seatbooking.dto.CancelBookingResponse;
 import com.project.seatbooking.dto.ReserveRequest;
+
 import java.security.Principal;
+
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +25,10 @@ public class BookingController {
     private final BookingMetrics metrics;
 
     public BookingController(BookingService bookings, BookingMetrics metrics) {
-        this.bookings = bookings; this.metrics = metrics;
+        this.bookings = bookings;
+        this.metrics = metrics;
     }
+
     @PostMapping("/shows/{id}/reserve")
     public ResponseEntity<BookingResponse> reserve(
             @PathVariable long id,
@@ -33,7 +37,8 @@ public class BookingController {
             Principal principal,
             HttpServletRequest http) {
         var result = bookings.reserve(id, principal.getName(), request.getSeats(), key);
-        if (result.replay()) metrics.declined("idempotent_replay"); else metrics.confirmed();
+        if (result.replay()) metrics.declined("idempotent_replay");
+        else metrics.confirmed();
         log.info("booking request_id={} show_id={} user_id={} booking_id={} outcome={}",
                 http.getAttribute("request_id"), id, principal.getName(), result.body().getBookingId(),
                 result.replay() ? "idempotent_replay" : "confirmed");

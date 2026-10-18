@@ -93,13 +93,7 @@
 		</dependency>
 <!--		<dependency>-->
 <!--			<groupId>org.springframework.boot</groupId>-->
-<!--			<artifactId>spring-boot-starter-liquibase-test</artifactId>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>org.springframework.boot</groupId>-->
-<!--			<artifactId>spring-boot-starter-security-test</artifactId>-->
-<!--			<scope>test</scope>-->
+<!--			<artifactId>spring-boot-starter-log4j2</artifactId>-->
 <!--		</dependency>-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -1,8 +1,10 @@
 package com.project.seatbooking.repository;
 
 import com.project.seatbooking.model.Seat;
+
 import java.util.List;
 import java.util.Optional;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -22,13 +24,16 @@ public class SeatRepository {
 
     private static final String RELEASE_SEAT =
             "UPDATE seats SET status = 'available', booking_id = NULL, updated_at = CURRENT_TIMESTAMP " +
-            "WHERE show_id = ? AND seat_id = ? AND booking_id = ?";
+                    "WHERE show_id = ? AND seat_id = ? AND booking_id = ?";
 
     private static final String COUNT_AVAILABLE = "SELECT count(*) FROM seats WHERE status = 'available'";
 
+    private static final String TUNCATE_SEAT_TABLE = "TRUNCATE SEATS CASCADE";
     private final JdbcTemplate jdbc;
 
-    public SeatRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public SeatRepository(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     public void create(long showId, String seatId) {
         jdbc.update(INSERT_SEAT, showId, seatId);
@@ -58,5 +63,9 @@ public class SeatRepository {
 
     private Seat mapSeat(java.sql.ResultSet rs) throws java.sql.SQLException {
         return new Seat(rs.getString(1), rs.getString(2), rs.getObject(3, Long.class));
+    }
+
+    public void tuncateSeatTable() {
+        jdbc.update(TUNCATE_SEAT_TABLE);
     }
 }

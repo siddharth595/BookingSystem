@@ -7,9 +7,12 @@ import com.project.seatbooking.model.Seat;
 import com.project.seatbooking.model.Show;
 import com.project.seatbooking.repository.SeatRepository;
 import com.project.seatbooking.repository.ShowRepository;
+
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShowService {
     private final ShowRepository showRepository;
     private final SeatRepository seatRepository;
+    private static final Logger logger = LogManager.getLogger(ShowService.class);
+
     public ShowService(ShowRepository shows, SeatRepository seatRepository) {
-        this.showRepository = shows; this.seatRepository = seatRepository;
+        this.showRepository = shows;
+        this.seatRepository = seatRepository;
     }
 
     @Transactional
@@ -29,7 +35,7 @@ public class ShowService {
                 limit != null && limit <= 0)
             throw new IllegalArgumentException("Invalid show details");
         Optional<Show> presentShow = showRepository.findByName(name);
-        if(presentShow.isPresent()) {
+        if (presentShow.isPresent()) {
             return get(presentShow.get().getId());
         }
         if (seats.stream().anyMatch(s -> s == null || !s.matches("[A-Za-z0-9_-]{1,32}")))

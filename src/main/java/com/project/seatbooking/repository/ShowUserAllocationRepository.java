@@ -12,14 +12,18 @@ public class ShowUserAllocationRepository {
             "FROM show_user_allocations WHERE show_id = ? AND user_id = ? FOR UPDATE";
     private static final String ADD_SEATS =
             "UPDATE show_user_allocations SET active_seat_count = active_seat_count + ? " +
-            "WHERE show_id = ? AND user_id = ?";
+                    "WHERE show_id = ? AND user_id = ?";
     private static final String REMOVE_SEATS =
             "UPDATE show_user_allocations SET active_seat_count = active_seat_count - ? " +
-            "WHERE show_id = ? AND user_id = ?";
+                    "WHERE show_id = ? AND user_id = ?";
+
+    private static final String TRUNCATE_SHOW_USERS_ALLOCATIONS = "TRUNCATE show_user_allocations CASCADE";
 
     private final JdbcTemplate jdbc;
 
-    public ShowUserAllocationRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public ShowUserAllocationRepository(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     public void ensureExists(long showId, long userId) {
         jdbc.update(INSERT_IF_ABSENT, showId, userId);
@@ -37,5 +41,9 @@ public class ShowUserAllocationRepository {
 
     public void removeSeats(long showId, long userId, int count) {
         jdbc.update(REMOVE_SEATS, count, showId, userId);
+    }
+
+    public void truncateShowUsersAllocations() {
+        jdbc.execute(TRUNCATE_SHOW_USERS_ALLOCATIONS);
     }
 }

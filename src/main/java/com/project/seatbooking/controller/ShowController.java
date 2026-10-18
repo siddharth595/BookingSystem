@@ -15,14 +15,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ShowController {
     private final ShowService shows;
-    public ShowController(ShowService shows) { this.shows = shows; }
 
-    @PostMapping("/shows") @ResponseStatus(HttpStatus.CREATED)
+    public ShowController(ShowService shows) {
+        this.shows = shows;
+    }
+
+    @PostMapping("/shows")
+    @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
     public ShowResponse create(@RequestBody CreateShowRequest request) {
         return shows.create(request.getName(), request.getSeats(), request.getPricePaise(), request.getPerUserLimit());
     }
 
     @GetMapping("/shows/{id}")
-    public ShowResponse get(@PathVariable long id) { return shows.get(id); }
+    public ShowResponse get(@PathVariable long id) {
+        return shows.get(id);
+    }
 }

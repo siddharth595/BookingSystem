@@ -1,11 +1,14 @@
 package com.project.seatbooking.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-@Getter @AllArgsConstructor
+@Getter
+@AllArgsConstructor
 public class ShowResponse {
     private final long id;
     private final String name;

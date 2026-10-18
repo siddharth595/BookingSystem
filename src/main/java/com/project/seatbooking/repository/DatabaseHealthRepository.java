@@ -9,7 +9,9 @@ public class DatabaseHealthRepository {
 
     private final JdbcTemplate jdbc;
 
-    public DatabaseHealthRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public DatabaseHealthRepository(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     public void checkConnection() {
         jdbc.queryForObject(CHECK_CONNECTION, Integer.class);

@@ -45,7 +45,6 @@ token() {
 admin_token="$(token "$ADMIN_USERNAME" "$ADMIN_PASSWORD")"
 user_token="$(token "$USER_USERNAME" "$USER_PASSWORD")"
 user2_token="$(token "$USER2_USERNAME" "$USER2_PASSWORD")"
-user3_token=""
 
 if (( HOT_USERS == 3 )); then
   user3_token="$(token "$USER3_USERNAME" "$USER3_PASSWORD")"
@@ -57,12 +56,13 @@ create_show() {
     -H 'Content-Type: application/json' \
     -d "$1"
 }
-
+echo "---- Creating dedicated show hot-seat-contention for hot-seat contention"
 # Dedicated show for hot-seat contention.
 hot_show="$(create_show \
   '{"name":"hot-seat-contention","seats":["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13"],"price_paise":25000,"per_user_limit":4}')"
 hot_show_id="$(jq -er '.id' <<< "$hot_show")"
 
+echo "---- Creting  show burst2 for remaining test cases"
 # Separate show for the remaining tests.
 show="$(create_show \
   '{"name":"burst2","seats":["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13"],"price_paise":25000,"per_user_limit":4}')"
@@ -96,7 +96,7 @@ seq 1 "$HOT_REQUESTS" |
       -H "Authorization: Bearer $token" \
       -H "Idempotency-Key: hot-$i" \
       -H "Content-Type: application/json" \
-      -d "{\"seats\":[\"A11\"]}" \
+      -d "{\"seats\":[\"A1\"]}" \
       -o "$work/hot-$i.json" \
       -w "%{http_code}\n" > "$work/hot-$i.status"
   ' sh '{}' &

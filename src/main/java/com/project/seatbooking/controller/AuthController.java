@@ -13,7 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final TokenService tokens;
-    public AuthController(TokenService tokens) { this.tokens = tokens; }
+
+    public AuthController(TokenService tokens) {
+        this.tokens = tokens;
+    }
+
     @PostMapping("/auth/token")
     @ResponseStatus(HttpStatus.OK)
     public AuthTokenResponse login(@RequestBody AuthTokenRequest request) {

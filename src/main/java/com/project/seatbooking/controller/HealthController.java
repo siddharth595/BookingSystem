@@ -12,14 +12,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
     private final DatabaseHealthRepository databaseHealth;
     private final BookingMetrics metrics;
+
     public HealthController(DatabaseHealthRepository databaseHealth, BookingMetrics metrics) {
-        this.databaseHealth = databaseHealth; this.metrics = metrics;
+        this.databaseHealth = databaseHealth;
+        this.metrics = metrics;
     }
-    @GetMapping("/health/live") public HealthResponse live() {
+
+    @GetMapping("/health/live")
+    public HealthResponse live() {
         return new HealthResponse("UP");
     }
 
-    @GetMapping("/health/ready") public ResponseEntity<HealthResponse> ready() {
+    @GetMapping("/health/ready")
+    public ResponseEntity<HealthResponse> ready() {
         try {
             databaseHealth.checkConnection();
             return ResponseEntity.ok(new HealthResponse("UP"));
@@ -27,6 +32,9 @@ public class HealthController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new HealthResponse("DOWN"));
         }
     }
+
     @GetMapping(value = "/metrics", produces = "text/plain; version=0.0.4; charset=utf-8")
-    public String metrics() { return metrics.scrape(); }
+    public String metrics() {
+        return metrics.scrape();
+    }
 }

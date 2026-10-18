@@ -13,7 +13,8 @@ public class BookingMetrics {
     private final PrometheusMeterRegistry prometheus;
 
     public BookingMetrics(MeterRegistry registry, PrometheusMeterRegistry prometheus, SeatRepository seats) {
-        this.registry = registry; this.prometheus = prometheus;
+        this.registry = registry;
+        this.prometheus = prometheus;
         Gauge.builder("seats_available", seats, repository -> (double) repository.countAvailable()).register(registry);
 
         for (String reason : new String[]{"seat_taken", "per_user_limit", "idempotent_replay", "idempotency_conflict"})
@@ -33,6 +34,7 @@ public class BookingMetrics {
     public void cancelled() {
         registry.counter("reservations_cancelled").increment();
     }
+
     public String scrape() {
         return prometheus.scrape();
     }
