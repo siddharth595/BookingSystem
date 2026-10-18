@@ -18,7 +18,17 @@ public class ApplicationController {
         return "Up and Running";
     }
 
-    @DeleteMapping("/truncate")
+    @DeleteMapping("/truncate/users")
+    public String truncateUsers(){
+        if(cleanUpService.truncateUsers()){
+            return "Successfully truncated tables";
+        }
+        else {
+            return "Failed to truncate tables";
+        }
+    }
+
+    @DeleteMapping("/truncate/tables")
     public String truncateTables(){
         if(cleanUpService.truncateTables()){
             return "Successfully truncated tables";

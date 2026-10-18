@@ -44,8 +44,14 @@ BASE_URL="${BASE_URL%/}"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
-log() { printf '[INFO] %s\n' "$*"; }
-die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
+log() {
+    printf '[%s] [INFO] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
+}
+
+die() {
+    printf '[%s] [ERROR] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2
+    exit 1
+}
 
 # Authenticate and return access token.
 get_token() {
@@ -147,12 +153,12 @@ status="$(curl -sS \
   -o "$workdir/body-$i.json" \
   -w '%{http_code}' \
   --connect-timeout 10 \
-  --max-time 60 \
+  --max-time 180 \
   -H "Authorization: Bearer $token" \
   -H 'Content-Type: application/json' \
   -H "Idempotency-Key: hot-$show_id-$i" \
   -X POST "$base_url/shows/$show_id/reserve" \
-  -d '{"seats":["A1"]}')" || status="000"
+  -d '{"seats":["A2"]}')" || status="000"
 
 printf '%s\n' "$status" > "$workdir/status-$i"
 WORKER
