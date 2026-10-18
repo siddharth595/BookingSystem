@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: seatbooking
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/testdb2}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:Password123@}
+    driver-class-name: org.postgresql.Driver
+
+    # Connection Pool settings (HikariCP defaults)
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 600000
+      connection-timeout: 30000
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+# Enable this if you want to see your raw SQL queries printed in the console logs
+booking:
+  jwt-secret: ${JWT_SECRET:i1WwBejjOmnQRmeElh13GQFsv3YgPQ2MJpA/kBPAkzQ=}
+  admin-username: ${ADMIN_USERNAME:}
+  admin-password: ${ADMIN_PASSWORD:}
+  user-username: ${USER_USERNAME:}
+  user-password: ${USER_PASSWORD:}
+  user2-username: ${USER2_USERNAME:}
+  user2-password: ${USER2_PASSWORD:}
+  user3-username: ${USER3_USERNAME:}
+  user3-password: ${USER3_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
