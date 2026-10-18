@@ -47,4 +47,17 @@ public class CleanUpService {
         }
 
     }
+
+    @Transactional
+    public boolean truncateUsers(){
+        try {
+            userRepository.truncateUsers();
+            return true;
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+
+    }
 }
