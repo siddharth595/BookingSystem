@@ -96,13 +96,12 @@ Expected contention should appear as 409s, not as application errors.
 
 ## 9. AI Usage
 
-AI tools may be used for scaffolding, documentation, test-case generation, code review prompts, and implementation suggestions.
 
-The concurrency design, transaction boundaries, idempotency semantics, and correctness properties must be understood and validated by the developer rather than accepted blindly from generated code.
-
-The final submission should disclose the specific AI usage honestly.
-
-For this implementation, Codex generated the service, migration, API, Docker, and burst script changes. An offline Maven compile was run; package/Docker builds and live concurrency properties still require verification in an environment with the required dependencies and PostgreSQL.
+- AI was used not only for prompting but also for code generation, documentation, preparing plans for execution, brainstorming several approaches within the boundary of the recommended technologies.
+- Initial use was for brainstorming and preparing skills for agent based coding. I used Gemini Flash model for generating the docs folder in this project which contains the coding guidelines, the design decisions, coding standards, etc.
+- Once this was ready, used Codex Sol model for code generation which consumed the details shared in the docs folder.
+- AI was also used for refactoring and creation of burst scripts and initial test validation using Postman.
+- Some decisions were corrected post AI code generation like creating dtos, proper packages, exception handling, scripts migrations, logging, use of liquibase, preference for jdbctemplate rather than JPA ORM etc.
 
 ## 10. Next Steps
 
