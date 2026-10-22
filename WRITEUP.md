@@ -102,7 +102,7 @@ Expected contention should appear as 409s, not as application errors.
 - Once this was ready, used Codex Sol model for code generation which consumed the details shared in the docs folder.
 - AI was also used for refactoring and creation of burst scripts and initial test validation using Postman.
 - Some decisions were corrected post AI code generation like creating dtos, proper packages, exception handling, scripts migrations, logging, use of liquibase, preference for jdbctemplate rather than JPA ORM etc.
-
+- We can also generate test cases with AI but that is not kept in the current scope.
 ## 10. Next Steps
 
 Beyond the challenge, I would consider:

@@ -21,6 +21,8 @@ Set `DATABASE_PASSWORD`, `JWT_SECRET`, `ADMIN_PASSWORD`, and `USER_PASSWORD` in 
 
 ## API
 
+Entire API contracts can be found in `docs/Api-contracts.md` file.
+
 Obtain a token:
 
 ```sh
@@ -40,6 +42,7 @@ Use `Authorization: Bearer <access_token>` for protected requests. Only the conf
 | GET | `/health/live` | Process liveness, independent of PostgreSQL |
 | GET | `/health/ready` | PostgreSQL check; 503 when unavailable |
 | GET | `/metrics` | Prometheus format |
+| GET | `/truncate/tables` | Truncate all tables for retry except the users table | 
 
 The reserve response returns `booking_id`. The required Prometheus metric names retain their `reservations_*` prefix for monitoring compatibility.
 
@@ -135,7 +138,12 @@ The script exits with a non-zero status if its assertions fail.
 
 **Note:** This is a hot-seat contention test, not a general throughput benchmark. Each request uses a distinct idempotency key, so it tests competing reservations rather than replaying the same request. A passing test validates the checked conditions for that run; it does not guarantee production capacity or correctness under every workload.
 
+### Retry of script
+- For retry of the same script with same hot seat, truncate the tables except the user table using below command
 
+```shell
+    curl --location --request DELETE 'https://seatbooking-dxaq.onrender.com/truncate/tables'
+```
 
 ## Deployment
 
@@ -148,3 +156,4 @@ This Springboot service is also deployed on Render with the url https://seatbook
 ## User Seeding
 
 The application seeds 1 ADMIN user and 100 dummy users at startup for enacting the booking scenario. The usernames of the dummy users is of pattern `user_<digit from 1-100>`. Passwords of these 100 seeded users are also same for testing purpose.
+
