@@ -38,7 +38,6 @@ public class CleanUpService {
             showRepository.truncateShows();
             seatRepository.tuncateSeatTable();
             showUserAllocationRepository.truncateShowUsersAllocations();
-            userRepository.truncateUsers();
             return true;
         }
         catch (Exception e){
